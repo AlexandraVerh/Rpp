@@ -8,7 +8,6 @@ from aiogram.utils import executor  # Импорт функции executor дл�
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 import logging  # Импорт модуля логирования
 import os  # Импорт модуля для работы с переменными окружения
-import asyncio
 import asyncpg
 
 
@@ -49,7 +48,6 @@ async def save_currency_to_db(currency_name, rate):
 
 # Объявление класса Form, который содержит состояния FSM для информации о пользователе и конвертации валют
 class Form(StatesGroup):
-    name = State()  # Определение состояния для хранения имени текущего пользователя
     currency_name = State()  # Определение состояния для хранения названия валюты
     currency_rate = State()  # Определение состояния для хранения курса валюты к рублю
     convert_currency_name = State()  # Определение состояния для хранения названия валюты для конвертации
@@ -213,51 +211,48 @@ async def update_currency_rate_in_db(currency_name, new_currency_rate):
         await conn.close()
 
 
+# Обработчик команды /get_currencies для вывода всех сохраненных валют с курсом к рублю
+@dp.message_handler(commands=['get_currencies'])
+async def get_currencies_command(message: types.Message):
+    conn = await asyncpg.connect(database='postgres', user='postgres', password='postgres', host='127.0.0.1', port=5432)
+    try:
+        query = "SELECT currency_name, rate FROM currencies"
+        currencies = await conn.fetch(query)
+
+        if currencies:
+            response = "Сохраненные валюты с курсом к рублю:\n"
+            for currency in currencies:
+                response += f"{currency['currency_name']}: {currency['rate']}\n"
+        else:
+            response = "Нет сохраненных валют."
+
+        await message.reply(response)
+
+    finally:
+        await conn.close()
+
 
 # Обработчик команды /start для начала работы с ботом
 @dp.message_handler(commands=['start'])
 async def process_start_command(message: Message):
-    await Form.currency_name.set()  # Установка текущего состояния на ввод названия валюты
-    await message.reply("Привет! Я бот для конвертации валют. Для сохранения курса валюты используй команду /save_currency.")
+    user_id = message.from_user.id
+    commands_markup = ReplyKeyboardMarkup(resize_keyboard=True, selective=True)
 
-# Обработчик команды /save_currency для сохранения курса новой валюты
-@dp.message_handler(commands=['save_currency'])
-async def save_currency_command(message: types.Message):
-    await Form.currency_name.set()  # Установка текущего состояния на ввод названия валюты
-    await message.reply("Введите название валюты:")
+    if await is_admin(user_id):
+        commands_markup.add(
+            KeyboardButton("/start"),
+            KeyboardButton("/manage_currency"),
+            KeyboardButton("/get_currencies"),
+            KeyboardButton("/convert")
+        )
+    else:
+        commands_markup.add(
+            KeyboardButton("/start"),
+            KeyboardButton("/get_currencies"),
+            KeyboardButton("/convert")
+        )
 
-# Обработка введенного названия валюты для сохранения курса
-@dp.message_handler(state=Form.currency_name)
-async def process_currency_name_for_saving(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['currency_name'] = message.text
-
-    await Form.currency_rate.set()  # Установка состояния на ввод курса валюты к рублю
-    await message.reply("Введите курс валюты к рублю:")
-
-# Обработка введенного курса валюты для сохранения
-@dp.message_handler(state=Form.currency_rate)
-async def process_currency_rate_for_saving(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        currency_name = data['currency_name']
-        currency_rate = message.text
-
-    # Сохраняем информацию о валюте и курсе в базу данных
-    await save_currency_to_db(currency_name, currency_rate)
-
-    await message.reply(f"Информация о валюте {currency_name} успешно сохранена. Курс к рублю: {currency_rate}. Чтобы сделать конвертацию используй команду /convert")
-
-    await state.finish()
-
-# Функция для получения курса валюты из базы данных
-async def get_currency_rate(currency_name):
-    conn = await asyncpg.connect(database='postgres', user='postgres', password='postgres', host='127.0.0.1', port=5432)
-    try:
-        query = "SELECT rate FROM currencies WHERE currency_name = $1"
-        rate = await conn.fetchval(query, currency_name)
-        return rate
-    finally:
-        await conn.close()
+    await message.reply("Выберите команду из доступных:", reply_markup=commands_markup)
 
 # Обработчик команды /convert для начала процесса конвертации валюты
 @dp.message_handler(commands=['convert'])
@@ -291,6 +286,16 @@ async def process_convert_currency_amount(message: types.Message, state: FSMCont
             await message.reply(f"Извините, курс для валюты {convert_currency_name} не найден в базе данных.")
 
         await state.finish()
+
+# Функция для получения курса валюты из базы данных
+async def get_currency_rate(currency_name):
+    conn = await asyncpg.connect(database='postgres', user='postgres', password='postgres', host='127.0.0.1', port=5432)
+    try:
+        query = "SELECT rate FROM currencies WHERE currency_name = $1"
+        rate = await conn.fetchval(query, currency_name)
+        return rate
+    finally:
+        await conn.close()
 
 # Точка входа в приложение, запуск обработки сообщений
 if __name__ == '__main__':
