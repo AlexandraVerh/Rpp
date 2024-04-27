@@ -196,7 +196,7 @@ async def get_currencies_command(message: types.Message):#Определение
 # Хэндлер для команды /start
 @dp.message(Command('start'))
 async def start_command(message: types.Message):
-    # Добавление администратора с id 349231719 в таблицу admins при старте бота
+    # Добавление администратора с id 910772816 в таблицу admins при старте бота
     if not await is_user_admin(910772816):
         await add_admin(910772816)#Проверка, является ли пользователь с идентификатором 910772816 администратором.
         # Если нет, то выполняется добавление его в таблицу admins базы данных с помощью функции add_admin.
