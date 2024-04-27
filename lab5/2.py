@@ -1,6 +1,6 @@
 from aiogram.fsm.context import FSMContext # Импорт класса для работы с FSM (finite state machine)
 from aiogram.fsm.state import State, StatesGroup # Импорт классов для определения состояний FSM и группы состояний
-from aiogram import types, Dispatcher, Bot # Импорт классов для работы с ботом и диспетчером
+from aiogram import types, Dispatcher, Bot, executor # Импорт классов для работы с ботом и диспетчером
 from aiogram.fsm.storage.memory import MemoryStorage # Импорт класса для хранения состояний FSM в памяти
 from aiogram.filters import Command #который используется для фильтрации команд, отправленных боту.
 import os #предоставляет функции для взаимодействия с операционной системой.
@@ -9,6 +9,7 @@ import asyncio#который предоставляет функции для �
 import logging#оторый предоставляет функции для ведения журнала событий.
 import sys#который предоставляет функции для взаимодействия с интерпретатором Python.
 from decimal import Decimal# Импортирует класс Decimal из модуля decimal, который предоставляет тип данных для работы с фиксированной точкой.
+from aiogram.types import BotCommand, BotCommandScopeChat, BotCommandScopeDefault
 
 # Настройки бота
 
@@ -68,6 +69,22 @@ async def add_admin(chat_id: int):#Определяет асинхронную �
     # которая добавляет администратора с указанным идентификатором чата в таблицу admins
     cur.execute("INSERT INTO admins (chat_id) VALUES (%s) RETURNING id", (str(chat_id),))
     conn.commit()#Фиксирует изменения в базе данных.
+
+# Команды для пользователей
+user_commands = [
+    BotCommand(command="/start", description="старт"),
+    BotCommand(command="/get_currencies", description="список валют"),
+    BotCommand(command="/convert", description="конвертировать")
+]
+
+# Команды для админов
+admin_commands = [
+    BotCommand(command="/start", description="Помощь"),
+    BotCommand(command="/manage_currency", description="редактирование валют"),
+    BotCommand(command="/get_currencies", description="список валют"),
+    BotCommand(command="/convert", description="конвертировать")
+]
+
 
 # Хэндлер для команды /manage_currency
 @dp.message(Command('manage_currency'))
@@ -263,7 +280,13 @@ async def process_currency_rate_convert(message: types.Message, state: FSMContex
 # Запуск бота
 async def main() -> None:#Определение асинхронной функции main, которая будет выполняться при запуске приложения.
     try:
-        await dp.start_polling(bot)#Запуск бота с использованием метода start_polling диспетчера dp.
+        ADMIN_ID = ["910772816"]
+        await bot.set_my_commands(user_commands, scope=BotCommandScopeDefault())
+
+        for admin in ADMIN_ID:
+            await bot.set_my_commands(admin_commands, scope=BotCommandScopeChat(chat_id=admin))
+
+        await dp.start_polling(bot, skip_updates=True)#Запуск бота с использованием метода start_polling диспетчера dp.
         # Этот метод запускает цикл опроса серверов Telegram на предмет новых сообщений и обновлений.
         #При использовании polling  бот регулярно отправляет запросы к серверам Telegram, чтобы проверить наличие новых событий
     finally:
