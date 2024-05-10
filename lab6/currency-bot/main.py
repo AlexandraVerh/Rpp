@@ -41,7 +41,9 @@ commands = [
     BotCommand(command="/start", description="Помощь"),
     BotCommand(command="/manage_currency", description="редактирование валют"),
     BotCommand(command="/get_currencies", description="список валют"),
-    BotCommand(command="/convert", description="конвертировать")
+    BotCommand(command="/convert", description="конвертировать"),
+    BotCommand(command="/add_admin", description="добавить администратора"),
+    BotCommand(command="/remove_admin", description="удалить администратора")
 ]
 
 # Хэндлер для команды /manage_currency
