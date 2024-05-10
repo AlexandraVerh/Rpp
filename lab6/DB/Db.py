@@ -29,5 +29,11 @@ cur.execute(#Выполняет SQL-запрос на создание табл�
     "rate FLOAT NOT NULL)"
 )
 
+cur.execute(#Выполняет SQL-запрос на создание таблицы
+    "CREATE TABLE IF NOT EXISTS admins ("
+    "id SERIAL PRIMARY KEY,"
+    "chat_id VARCHAR NOT NULL)"
+)
+
 conn.commit()#Фиксирует изменения в базе данных.
 conn.close()
