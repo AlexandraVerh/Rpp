@@ -47,12 +47,21 @@ commands = [
 # Хэндлер для команды /manage_currency
 @dp.message(Command('manage_currency'))
 async def manage_currency_command(message: types.Message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3, keyboard=[])
-    button1 = types.KeyboardButton(text="Добавить валюту")
-    button2 = types.KeyboardButton(text="Удалить валюту")
-    button3 = types.KeyboardButton(text="Изменить курс валюты")
-    markup.keyboard.append([button1, button2, button3])
-    await message.answer("Выберите действие", reply_markup=markup)
+    # Получение роли пользователя
+    response = requests.get(f'http://127.0.0.1:5003/get_admin/{message.chat.id}')
+    if response.status_code == 200:
+        role = response.json().get('admin')
+        if role:
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=3, keyboard=[])
+            button1 = types.KeyboardButton(text="Добавить валюту")
+            button2 = types.KeyboardButton(text="Удалить валюту")
+            button3 = types.KeyboardButton(text="Изменить курс валюты")
+            markup.keyboard.append([button1, button2, button3])
+            await message.answer("Выберите действие", reply_markup=markup)
+        else:
+            await message.answer("У вас недостаточно прав для выполнения этой команды")
+    else:
+        await message.answer("Ошибка при получении роли")
 
 # Хэндлер для нажатия на кнопку "Добавить валюту"
 @dp.message(lambda message: message.text == "Добавить валюту")
@@ -161,8 +170,6 @@ async def process_currency_rate_change(message: types.Message, state: FSMContext
     await state.set_state(None)
 
 
-
-
 @dp.message(Command('get_currencies'))
 async def get_currencies_command(message: types.Message):
     # Отправка запроса на получение всех валют в микросервис data-manager
@@ -176,7 +183,7 @@ async def get_currencies_command(message: types.Message):
     else:
         await message.answer("Ошибка при получении валют.")
 
-# Хэндлер для команды /convert
+
 # Хэндлер для команды /convert
 @dp.message(Command('convert'))
 async def convert_command(message: types.Message, state: FSMContext):
