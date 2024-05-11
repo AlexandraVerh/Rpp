@@ -14,9 +14,9 @@ cur = conn.cursor()
 
 @app.post("/load")
 async def load_currency(request: Request):
-    data = await request.json()
+    data = await request.json()#извлекает данные из JSON тела запроса.
     currency_name = data.get("currency_name")
-    rate = data.get("rate")
+    rate = data.get("rate")#извлекают имя валюты и её курс из данных запроса.
 
     # Проверка, есть ли уже такая валюта в базе
     cur.execute("SELECT * FROM currencies WHERE currency_name = %s", (currency_name,))
@@ -31,9 +31,9 @@ async def load_currency(request: Request):
 
 @app.post("/update_currency")
 async def update_currency(request: Request):
-    data = await request.json()
+    data = await request.json()#извлекает данные из JSON тела запроса.
     currency_name = data.get("currency_name")
-    new_rate = data.get("new_rate")
+    new_rate = data.get("new_rate")#извлекают имя валюты и её курс из данных запроса.
 
     # Проверка, есть ли такая валюта в базе
     cur.execute("SELECT * FROM currencies WHERE currency_name = %s", (currency_name,))
@@ -48,8 +48,8 @@ async def update_currency(request: Request):
 
 @app.post("/delete")
 async def delete_currency(request: Request):
-    data = await request.json()
-    currency_name = data.get("currency_name")
+    data = await request.json()#извлекает данные из JSON тела запроса.
+    currency_name = data.get("currency_name")#извлекают имя валюты и её курс из данных запроса.
 
     # Проверка, есть ли такая валюта в базе
     cur.execute("SELECT * FROM currencies WHERE currency_name = %s", (currency_name,))
@@ -62,6 +62,6 @@ async def delete_currency(request: Request):
 
     return {"message": "Валюта успешно удалена"}
 
-if __name__ == "__main__":
-    import uvicorn
+if __name__ == "__main__":#Проверка, что этот файл выполняется как главная программа, а не импортируется как модуль.
+    import uvicorn#предоставляет ASGI сервер для запуска FastAPI приложений.
     uvicorn.run(app, host="0.0.0.0", port=5001)
