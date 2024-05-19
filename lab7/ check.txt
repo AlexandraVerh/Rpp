@@ -1,0 +1,11 @@
+Позитивное тестирование:
+3, 4, 5 -> nonequilateral
+6, 6, 8 -> isosceles
+9, 9, 9 -> equilateral
+
+Негативное тестирование:
+0, 4, 5 -> IncorrectTriangleSides: Длина сторон должна быть положительной
+3, -4, 5 -> IncorrectTriangleSides: Длина сторон должна быть положительной
+3, 4, 0 -> IncorrectTriangleSides: Длина сторон должна быть положительной
+1, 1, 3 -> IncorrectTriangleSides: Длины сторон не образуют треугольника
+3, 4, 10 -> IncorrectTriangleSides: Длины сторон не образуют треугольника
