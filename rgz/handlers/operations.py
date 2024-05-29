@@ -1,4 +1,4 @@
-from rgz.data.database import add_operation, is_user_registered
+from rgz.data.database import add_operation, is_user_registered, update_operation
 from datetime import datetime
 from aiogram import types, Router, filters
 from aiogram.fsm.context import FSMContext
@@ -106,6 +106,55 @@ async def view_operations_currency(message: types.Message, state: FSMContext):
         operation_sum_formatted = "{:.2f}".format(operation_sum)
         await message.answer(f"{operation_date} - {type_operation}: {operation_sum_formatted} {currency}")
 
+    await state.clear()
+
+class UpdateOperation(StatesGroup):
+    operation_id = State()
+    new_sum = State()
+
+@router.message(Command('update_operation'))
+async def update_operation_start(message: types.Message, state: FSMContext):
+    if not is_user_registered(message.chat.id):
+        await message.answer("Вы не зарегистрированы. Используйте команду /reg для регистрации.")
+        return
+
+    await message.answer("Введите идентификатор операции, которую хотите обновить:")
+    await state.set_state(UpdateOperation.operation_id)
+
+@router.message(UpdateOperation.operation_id, filters.StateFilter(UpdateOperation.operation_id))
+async def operation_id_handler(message: types.Message, state: FSMContext):
+    try:
+        operation_id = int(message.text)
+    except ValueError:
+        await message.answer("Неверный идентификатор операции. Попробуйте еще раз.")
+        return
+
+    operations = get_operations_by_user(message.chat.id)
+    operation_exists = False
+    for operation in operations:
+        if operation[0] == operation_id:
+            operation_exists = True
+            break
+
+    if not operation_exists:
+        await message.answer("Операция с таким идентификатором не существует или не принадлежит вам.")
+        return
+
+    await message.answer("Введите новую сумму операции:")
+    await state.update_data(operation_id=operation_id)
+    await state.set_state(UpdateOperation.new_sum)
+
+@router.message(UpdateOperation.new_sum, filters.StateFilter(UpdateOperation.new_sum))
+async def new_sum_handler(message: types.Message, state: FSMContext):
+    if not message.text.isdigit():
+        await message.answer("Неверная сумма. Попробуйте еще раз.")
+        return
+
+    data = await state.get_data()
+    operation_id = data["operation_id"]
+    new_sum = int(message.text)
+    update_operation(operation_id, new_sum)
+    await message.answer("Операция успешно обновлена.")
     await state.clear()
 
 def register_handlers_operations(dp):

@@ -42,3 +42,10 @@ def get_operations_by_user(chat_id):
     conn.close()
     return operations
 
+def update_operation(operation_id, new_sum):
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE operations SET sum = %s WHERE id = %s', (new_sum, operation_id))
+    conn.commit()
+    conn.close()
+
