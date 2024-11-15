@@ -3,7 +3,7 @@ from flask_login import LoginManager, login_required, logout_user, login_user, c
 from models import User
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SECRET_KEY'] = '123456987'
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -11,9 +11,11 @@ login_manager.init_app(app)
 # Пример пользователей
 users = {}
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return users.get(user_id)
+
 
 @app.route('/')
 def index():
@@ -22,11 +24,13 @@ def index():
     else:
         return redirect(url_for('login'))
 
+
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -34,11 +38,12 @@ def login():
         email = request.form['email']
         password = request.form['password']
         user = next((u for u in users.values() if u.email == email), None)
-        if user and user.password == password:
+        if user and user.check_password(password):
             login_user(user)
             return redirect(url_for('index'))
         flash('Неверный адрес электронной почты или пароль')
     return render_template('login.html')
+
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -46,7 +51,10 @@ def signup():
         name = request.form['name']
         email = request.form['email']
         password = request.form['password']
-        if email in users:
+
+        # Проверяем, существует ли пользователь с таким email
+        existing_user = next((u for u in users.values() if u.email == email), None)
+        if existing_user:
             flash('Пользователь уже существует')
         else:
             user_id = str(len(users) + 1)
@@ -54,9 +62,15 @@ def signup():
             users[user_id] = new_user
             flash('Пользователь успешно зарегистрирован')
             return redirect(url_for('login'))
+
     return render_template('signup.html')
+
+
+@app.route('/users')
+@login_required
+def users_list():
+    return render_template('users.html', users=users.values())
+
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
