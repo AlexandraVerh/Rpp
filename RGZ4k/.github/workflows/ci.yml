@@ -21,16 +21,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install Flask Flask-Caching Flask-Limiter
+          pip install Flask Flask-Caching Flask-Limiter bandit
 
       - name: Run Bandit for security check
         run: |
-          pip install bandit
           bandit -r . -f json -o bandit_report.json || true
-
-      - name: Run tests
-        run: |
-          echo "No tests to run"
 
       - name: Upload Bandit report
         uses: actions/upload-artifact@v3
