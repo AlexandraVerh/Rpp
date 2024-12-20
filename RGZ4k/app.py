@@ -1,38 +1,40 @@
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify, request
 from flask_caching import Cache
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-import time
 
 app = Flask(__name__)
 
-# Настройки кэширования
-cache = Cache(app, config={'CACHE_TYPE': 'simple'})
+# Настройка кэширования
+cache = Cache(app, config={'CACHE_TYPE': 'simple', 'CACHE_DEFAULT_TIMEOUT': 3600})
 
-# Настройки ограничения частоты запросов
+# Настройка лимитирования запросов
 limiter = Limiter(
-    get_remote_address,
+    app,
+    key_func=get_remote_address,
     default_limits=["10 per hour"]
 )
 
 # Статические данные о погоде
 weather_data = {
-    "Moscow": {"temperature": -5, "condition": "Снег"},
-    "New York": {"temperature": 3, "condition": "Дождь"},
-    "Tokyo": {"temperature": 10, "condition": "Ясно"},
+    "Moscow": {"temperature": "5°C", "condition": "Облачно"},
+    "New York": {"temperature": "10°C", "condition": "Солнечно"},
+    # Добавьте другие города по необходимости
 }
 
-
-@app.route('/weather/', methods=['GET'])
+@app.route('/weather/<city>', methods=['GET'])
+@cache.cached(timeout=3600)
 @limiter.limit("10 per hour")
-@cache.cached(timeout=3600, query_string=True)
-def get_weather():
-    city = request.args.get('city')
-    if city not in weather_data:
+def get_weather(city):
+    if city in weather_data:
+        return jsonify(weather_data[city])
+    else:
         return jsonify({"error": "Город не найден"}), 404
 
-    return jsonify(weather_data[city])
-
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify({"error": "Превышен лимит ставок", "retry_after": e.description}), 429
 
 if __name__ == '__main__':
     app.run(debug=True)
+

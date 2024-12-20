@@ -1,34 +1,27 @@
-name: CI/CD Pipeline
+name: Python application
 
-on:
-  push:
-    branches:
-      - main
+on: [push, pull_request]
 
 jobs:
   build:
+
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install Flask Flask-Caching Flask-Limiter bandit
-
-      - name: Run Bandit for security check
-        run: |
-          bandit -r . -f json -o bandit_report.json || true
-
-      - name: Upload Bandit report
-        uses: actions/upload-artifact@v3
-        with:
-          name: bandit-report
-          path: bandit_report.json
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 bandit
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Lint with flake8
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Security check with bandit
+      run: |
+        bandit -r .
